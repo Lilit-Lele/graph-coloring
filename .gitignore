@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+
+# Generated graph images (regenerable from the notebook)
+*.png
+
+# Verification / scratch artifacts
+executed_updated_version.ipynb
+_*.py
