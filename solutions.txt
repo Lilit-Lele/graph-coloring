@@ -126,3 +126,262 @@ solution matrix:
  3 | 0 | 1 | 2 |
  ---------------
 
+=== k_2_1_4 ===
+colourable     : yes
+colours tested : 1  (k = 6 .. 6)
+runtime        : 0.056 s
+colours used   : 6
+solution matrix:
+        K 2 1 4         
+
+ * | * | 0 | 1 | 2 | 3 |
+ -----------------------
+ * | * | 1 | 2 | 3 | 4 |
+ -----------------------
+ 4 | 0 | 2 | 3 | 1 | 5 |
+ -----------------------
+
+=== k_2_2_2 ===
+colourable     : yes
+colours tested : 1  (k = 4 .. 4)
+runtime        : 0.024 s
+colours used   : 4
+solution matrix:
+    K 2 2 2     
+
+ * | * | 0 | 1 |
+ ---------------
+ * | * | 2 | 3 |
+ ---------------
+ 3 | 0 | 1 | 2 |
+ ---------------
+ 2 | 1 | 3 | 0 |
+ ---------------
+
+=== k_1_2_2 ===
+colourable     : no
+colours tested : 5  (k = 4 .. 8)
+runtime        : 0.082 s
+
+=== k_1_2_2 ===
+colourable     : no
+colours tested : 5  (k = 4 .. 8)
+runtime        : 0.127 s
+
+=== k_2_2_2 ===
+colourable     : yes
+colours tested : 1  (k = 4 .. 4)
+runtime        : 0.019 s
+colours used   : 4
+solution matrix:
+    K 2 2 2     
+
+ * | * | 2 | 0 |
+ ---------------
+ * | * | 1 | 3 |
+ ---------------
+ 1 | 0 | 3 | 2 |
+ ---------------
+ 3 | 2 | 0 | 1 |
+ ---------------
+
+=== k_1_1_6 ===
+colourable     : yes
+colours tested : 1  (k = 7 .. 7)
+runtime        : 0.041 s
+colours used   : 7
+solution matrix:
+          K 1 1 6           
+
+ * | 2 | 0 | 5 | 3 | 1 | 6 |
+ ---------------------------
+ 4 | 3 | 1 | 6 | 2 | 0 | 5 |
+ ---------------------------
+
+=== k_1_1_6 ===
+colourable     : yes
+colours tested : 1  (k = 7 .. 7)
+runtime        : 0.081 s
+colours used   : 7
+solution matrix:
+          K 1 1 6           
+
+ * | 1 | 5 | 3 | 6 | 0 | 4 |
+ ---------------------------
+ 2 | 0 | 6 | 4 | 5 | 1 | 3 |
+ ---------------------------
+
+=== k_1_1_6 ===
+colourable     : yes
+colours tested : 1  (k = 7 .. 7)
+runtime        : 0.056 s
+colours used   : 7
+solution matrix:
+          K 1 1 6           
+
+ * | 1 | 5 | 3 | 6 | 0 | 4 |
+ ---------------------------
+ 2 | 0 | 6 | 4 | 5 | 1 | 3 |
+ ---------------------------
+
+=== k_1_1_2 ===
+colourable     : yes
+colours tested : 1  (k = 3 .. 3)
+runtime        : 0.008 s
+colours used   : 3
+solution matrix:
+  K 1 1 2   
+
+ * | 2 | 1 |
+ -----------
+ 0 | 1 | 2 |
+ -----------
+
+=== k_1_1_2 ===
+colourable     : yes
+colours tested : 1  (k = 3 .. 3)
+runtime        : 0.019 s
+colours used   : 3
+solution matrix:
+  K 1 1 2   
+
+ * | 2 | 1 |
+ -----------
+ 0 | 1 | 2 |
+ -----------
+
+=== k_2_2_3 ===
+colourable     : no
+colours tested : 6  (k = 5 .. 10)
+runtime        : 23.266 s
+
+=== k_1_1_6 ===
+colourable     : yes
+colours tested : 1  (k = 7 .. 7)
+runtime        : 0.034 s
+colours used   : 7
+solution matrix:
+          K 1 1 6           
+
+ * | 5 | 2 | 6 | 4 | 3 | 1 |
+ ---------------------------
+ 0 | 6 | 1 | 5 | 3 | 4 | 2 |
+ ---------------------------
+
+=== k_1_1_2 ===
+colourable     : yes
+colours tested : 1  (k = 3 .. 3)
+runtime        : 0.012 s
+colours used   : 3
+solution matrix:
+  K 1 1 2   
+
+ * | 0 | 1 |
+ -----------
+ 2 | 1 | 0 |
+ -----------
+
+=== k_1_1_2 ===
+colourable     : yes
+colours tested : 1  (k = 3 .. 3)
+runtime        : 0.013 s
+colours used   : 3
+solution matrix:
+  K 1 1 2   
+
+ * | 2 | 1 |
+ -----------
+ 0 | 1 | 2 |
+ -----------
+
+=== k_1_1_2 ===
+colourable     : yes
+colours tested : 1  (k = 3 .. 3)
+runtime        : 0.014 s
+colours used   : 3
+solution matrix:
+  K 1 1 2   
+
+ * | 1 | 2 |
+ -----------
+ 0 | 2 | 1 |
+ -----------
+
+=== k_1_1_2 ===
+colourable     : yes
+colours tested : 1  (k = 3 .. 3)
+runtime        : 0.013 s
+colours used   : 3
+solution matrix:
+  K 1 1 2   
+
+ * | 2 | 1 |
+ -----------
+ 0 | 1 | 2 |
+ -----------
+
+=== k_1_1_2 ===
+colourable     : yes
+colours tested : 1  (k = 3 .. 3)
+runtime        : 0.010 s
+colours used   : 3
+solution matrix:
+  K 1 1 2   
+
+ * | 0 | 1 |
+ -----------
+ 2 | 1 | 0 |
+ -----------
+
+=== k_2_1_2 ===
+colourable     : no
+colours tested : 5  (k = 4 .. 8)
+runtime        : 0.041 s
+
+=== k_2_1_6 ===
+colourable     : yes
+colours tested : 1  (k = 8 .. 8)
+runtime        : 0.026 s
+colours used   : 8
+solution matrix:
+            K 2 1 6             
+
+ * | * | 5 | 0 | 2 | 4 | 3 | 1 |
+ -------------------------------
+ * | * | 4 | 1 | 3 | 6 | 5 | 2 |
+ -------------------------------
+ 6 | 7 | 3 | 2 | 1 | 5 | 4 | 0 |
+ -------------------------------
+
+=== k_2_1_7 ===
+colourable     : yes
+colours tested : 1  (k = 9 .. 9)
+runtime        : 0.027 s
+colours used   : 9
+solution matrix:
+              K 2 1 7               
+
+ * | * | 3 | 6 | 5 | 7 | 8 | 2 | 4 |
+ -----------------------------------
+ * | * | 4 | 8 | 3 | 6 | 7 | 1 | 5 |
+ -----------------------------------
+ 1 | 2 | 5 | 7 | 4 | 8 | 6 | 0 | 3 |
+ -----------------------------------
+
+=== k_2_2_4 ===
+colourable     : yes
+colours tested : 1  (k = 6 .. 6)
+runtime        : 0.030 s
+colours used   : 6
+solution matrix:
+        K 2 2 4         
+
+ * | * | 1 | 0 | 3 | 2 |
+ -----------------------
+ * | * | 4 | 2 | 1 | 3 |
+ -----------------------
+ 4 | 5 | 2 | 3 | 0 | 1 |
+ -----------------------
+ 5 | 0 | 3 | 1 | 2 | 4 |
+ -----------------------
+
