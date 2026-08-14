@@ -298,6 +298,257 @@ markdown already states in words: on hard instances almost all the bar
 height should be red, since proving a `k` too small is what costs time, not
 the eventual `sat` call.
 
+## 12. Explanation of sat_unsat
+
+Walkthrough given to the user explaining `sat_unsat.ipynb` from scratch: what
+SAT/UNSAT means, what each section of the notebook does, where the `k` search
+ceiling comes from, the `create_graph`/`build_graph` split, `all_edges`/
+`incidence`, and a line-by-line read of the section-1 solver.
+
+### What SAT/UNSAT means here
+
+z3 answers "does any variable assignment satisfy all these constraints?" —
+**SAT** = yes, with a concrete example (a *model*); **UNSAT** = no, provably,
+for every possible assignment. The problem being solved is *interval edge
+colouring*: colour every edge so that at each vertex the incident edges get
+(a) all-distinct colours and (b) colours forming a gap-free consecutive run.
+For a graph, the notebook asks "is there a valid colouring using at most `k`
+colours?" for increasing `k`; the first `k` that comes back SAT is the
+minimum colour count. If every tested `k` is UNSAT, proving that is far more
+expensive than finding a lucky SAT witness, since UNSAT requires ruling out
+*everything* — which is why `K(2,2,7)`/`K(2,2,3)` (no interval colouring
+found up to the tested cap) are used as the hard benchmark cases.
+
+### Section-by-section summary of `sat_unsat.ipynb`
+
+- **§0 Graph + edge helpers**: `create_graph(l,m,n)` returns the raw edge
+  list (tuples) for the complete tripartite graph K(l,m,n) — all cross-part
+  pairs, no within-part edges. `build_graph(l,m,n)` calls `create_graph`
+  internally and wraps the result in a `pygraphviz.AGraph` (nodes + edges +
+  styling), returning `(graph, name, layout)`. So `create_graph` is pure
+  data; `build_graph` is the drawable object built from that data — only
+  `build_graph` is actually called from the "Run" cell, since the solver
+  reads edges back off the `AGraph` via `all_edges`, not from `create_graph`
+  directly. `all_edges(graph)` flattens `graph.edges()` into `"u v"` strings
+  in a fixed order — that order becomes each edge's index into the z3
+  variable array. `incidence(edges)` builds `vertex -> [edge indices
+  touching it]`, which is what both `delta` (max degree) and the per-vertex
+  `Distinct`/interval constraints are built from.
+- **§1 The solver** (`interval_coloring`) — see detailed walkthrough below.
+- **§2 Profiled version** (`interval_coloring_profiled`/`_profile_search`) —
+  identical encoding to §1, but captures `Solver.statistics()` (decisions,
+  conflicts, propagations, restarts, time) after every `check()`, for the §4b
+  chart.
+- **§3 Solution → matrix** — `color_matrix`/`format_matrix`/`format_kmn`/
+  `render_matrix`/`log_solution`: pure formatting/export, turns a solution
+  dict into a printable matrix and appends run summaries to `solutions.txt`.
+- **§4 Run** — builds K(2,2,7), runs `interval_coloring_profiled`, logs the
+  result.
+- **§4b Per-k solver effort** — bar charts of `stats` (time,
+  decisions/conflicts per `k`, green=sat/red=unsat) — visual confirmation
+  that on hard instances almost all cost is in the unsat `k`'s.
+- **§5 Draw the coloured graph** — row-per-part pygraphviz layout (smallest
+  part on top), edges coloured/labelled by colour number.
+- **§6 Save to HTML** — appends stats + matrix + base64 PNG to
+  `solutions.html`.
+
+### Where the upper bound on `k` comes from — and why it isn't a proof
+
+```python
+delta = max(len(es) for es in inc.values())
+if max_colors is None:
+    max_colors = 2 * delta
+```
+
+`delta` = max vertex degree = the *proven* lower bound (a vertex with `d`
+incident edges needs at least `d` colours). The default upper bound,
+`2 * delta`, is a **heuristic cutoff, not a proven bound** for this graph
+class. It's borrowed from a real theorem for *bipartite* graphs that are
+known to be interval-colourable (at most `2Δ−2` colours needed), but
+`K(l,m,n)` with all three parts nonempty is not bipartite (it has triangles
+across parts), so that theorem doesn't cover it. Consequently:
+
+- **SAT is monotonic upward**: if `k` colours works, `k+1` trivially also
+  works (leave the extra colour unused) — so stopping at the first SAT is
+  legitimate.
+- **UNSAT is not monotonic**: increasing `k` *loosens* every constraint
+  (bigger domain, wider `lo..lo+len-1` window), so UNSAT at `k` does not
+  imply UNSAT at `k+1`. Some graphs have no interval colouring for *any*
+  `k` — a real, studied phenomenon — but proving that requires a structural/
+  combinatorial argument specific to the graph, not more `check()` calls.
+- The notebook's own intro is careful about this: "no interval colouring
+  **up to 10 colours**," not "period." Raising `max_colors` buys more
+  confidence, never certainty. A real proof would need either citing an
+  existing theorem covering complete tripartite interval-colourability
+  specifically (not verified/looked up this session), or an independent
+  counting/structural argument — brute-force search alone cannot produce
+  one.
+
+### Section 1 solver — line by line
+
+```python
+def interval_coloring(graph, max_colors=None):
+    edges = all_edges(graph)
+    idx = {e: i for i, e in enumerate(edges)}
+    inc = incidence(edges)
+
+    delta = max(len(es) for es in inc.values())
+    if max_colors is None:
+        max_colors = 2 * delta
+```
+`edges`/`idx`/`inc` as above. `delta`/`max_colors` set the search range.
+
+```python
+    width = max(4, (2 * max_colors).bit_length() + 2)
+    xs = [BitVec('e%d' % i, width) for i in range(len(edges))]
+```
+`width`: fixed bit-width for every `BitVec` (they wrap like a `uint`).
+Sized generously (`2*max_colors` bits +2, floor 4) as headroom so that,
+combined with the explicit `[0, max_colors-1]` fencing below, no arithmetic
+(e.g. `lo + len(vs)-1`) can ever wrap around and silently produce a
+spurious small value — the "correctness note" flagged when BitVec was first
+introduced. `xs[i]` = the colour variable for `edges[i]`.
+
+```python
+    s = Solver()
+    for x in xs:
+        s.add(x >= 0, x <= max_colors - 1)
+```
+Domain bound: every edge colour must be `0 <= x <= max_colors-1`, the
+absolute ceiling for the whole run (independent of which `k` is being
+tested in the loop below).
+
+```python
+    s.add(Or([x == 0 for x in xs]))
+```
+Symmetry break: forces at least one edge to take colour exactly 0.
+Colourings are only meaningful up to a constant shift, so this collapses
+every shift-equivalent family of solutions to one canonical (zero-based)
+representative, cutting redundant search.
+
+```python
+    for v, es in inc.items():
+        vs = [xs[i] for i in es]
+        s.add(Distinct(vs))
+```
+Per vertex: `vs` = colour variables of its incident edges. `Distinct(vs)` =
+proper edge colouring (no two edges sharing an endpoint get the same
+colour).
+
+```python
+        if len(vs) > 1:
+            lo = BitVec('lo_%s' % v, width)
+            s.add(lo >= 0, lo <= max_colors - 1)
+            for x in vs:
+                s.add(x >= lo, x <= lo + (len(vs) - 1))
+```
+The interval property. `lo` is a fresh auxiliary variable per vertex (not
+part of the output) representing "the smallest colour used at this
+vertex," free for the solver to choose independently per vertex. Forcing
+every incident colour into `[lo, lo+len(vs)-1]` — a window sized exactly to
+the vertex's degree — combined with `Distinct` already requiring all
+`len(vs)` values to differ, forces them to occupy *every* integer in that
+window: a gap-free consecutive run. Skipped for degree-1 vertices (a single
+edge trivially satisfies "interval").
+
+```python
+    tested = 0
+    for k in range(delta, max_colors + 1):
+        tested += 1
+        if s.check([x <= k - 1 for x in xs]) == sat:
+```
+Search loop over candidate colour counts. All constraints above are baked
+into `s` permanently. `s.check([x <= k-1 for x in xs])` passes a temporary
+**assumption list** — "additionally assume every colour is `<= k-1`" —
+directly to `check()` instead of using `push()`/`pop()`. The assumptions
+are discarded after the call, but the solver's internal state/learned
+clauses from the permanent constraints carry over across iterations, which
+is the main win of assumptions over rebuild-per-`k`.
+
+```python
+            m = s.model()
+            sol = {e: m[xs[idx[e]]].as_long() for e in edges}
+            return {'solution': sol, 'colorable': True, 'colours': k,
+                    'colours_tested': tested, 'delta': delta, 'max_colors': max_colors}
+```
+First `k` that returns SAT: pull the model, decode each edge's colour via
+`idx` lookup + `.as_long()` (z3 numeral → plain Python int), return
+immediately — this `k` is the minimum since `k` was tried in increasing
+order.
+
+```python
+    return {'solution': None, 'colorable': False, 'colours': None,
+            'colours_tested': tested, 'delta': delta, 'max_colors': max_colors}
+```
+If no `k` up to `max_colors` was SAT: `colorable: False` — "not found within
+the tested range," per the caveat above, not a proof of non-existence.
+
+## 13. thinking about the spectral theorem and if a graph can have multiple solutions where some satisfy the spectral theorem and some dont
+
+Getting a different solution matrix on each run, and whether that costs
+performance.
+
+### Why re-running currently gives the *same* matrix every time
+
+Both notebooks use z3's default (fixed) random seed, so the solver's
+search — decision order, tie-breaking, restarts — is fully deterministic:
+same constraints in, same model out, every run. The solution to a given
+`k` is not mathematically unique in general (multiple valid interval
+colourings can exist even after the `Or(x==0)` symmetry break), but z3
+consistently converges on the same one absent a change to how the search
+itself is driven.
+
+### Option A — vary the seed each run
+
+```python
+import random
+
+s = Solver()
+s.set('random_seed', random.randint(0, 2**31 - 1))
+```
+(or `o.set('random_seed', ...)` for `Optimize()`.) Changes the tie-breaking
+sequence the CDCL search follows, so a different seed *can* land on a
+different valid model. Not a guarantee, though — if there's only one
+minimum colouring up to symmetry for a given graph/k, every seed converges
+on it anyway; two different seeds can also coincidentally agree.
+
+**Performance impact**: no fixed overhead (seeding a PRNG is free), but
+introduces runtime *variance*, especially on hard/mostly-UNSAT instances
+like `K(2,2,7)`'s 898s proof — search order genuinely affects how fast
+useful conflicts/learned clauses are found, so a different seed could
+finish faster or slower than the current default-seed baseline, purely by
+chance. On the fast easy-SAT graphs already run in this project
+(single-digit-to-tens of ms), this variance is negligible in absolute
+terms.
+
+### Option B — force a genuinely different solution (enumeration)
+
+```python
+prev_model_constraint = Or([x != m[x] for x in xs])
+s.add(prev_model_constraint)   # rules out that exact assignment only
+if s.check() == sat:
+    m2 = s.model()             # guaranteed different from the first model
+```
+Standard SAT/SMT solution-enumeration pattern: block the exact previous
+model, re-check. Guarantees a different result (unlike Option A), can be
+looped to collect several distinct colourings in one run.
+
+**Performance impact**: real additional cost, unlike Option A. Each extra
+solution requested costs one more full `check()` call (z3 does retain
+learned clauses from the first search since it's the same `Solver`/
+`Optimize` instance, so it's often cheaper than a cold search, but not
+free) — cost scales roughly linearly with how many distinct solutions are
+requested. Only applies to already-colourable (SAT) instances — never
+touches the expensive UNSAT-sweep cases, since blocking clauses enumerate
+*alternate SAT solutions*, not alternate UNSAT proofs. Given the SAT cases
+in this project already run in milliseconds, a handful of enumerated
+alternates should stay well under a second total even though it's doing
+genuine extra search.
+
+**Summary**: Option A is free but unpredictable (mainly matters on hard
+instances); Option B is predictable, real extra cost, but only on the
+cheap SAT cases where it barely matters in absolute time.
+
 ## Notes / gotchas hit this session
 - Writing into `~/.claude/graph-coloring/` required disabling the sandbox
   (`dangerouslyDisableSandbox`) — the default sandbox blocks writes there.
